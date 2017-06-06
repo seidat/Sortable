@@ -4,6 +4,13 @@
  * @license MIT
  */
 
+ /**
+  * Version edited by Artem K on 2/28/2017
+  * Adds zoomLevel variable to enable sorting when slide map is zoomed out.
+  * Modified _onTouchMove and _appendGhost functions to apply `transform: scale()` on the dragged ghost.
+  * Added two helper functions to destroy sortable instance and check if it's active.
+  */
+
 (function sortableModule(factory) {
 	"use strict";
 
@@ -36,6 +43,8 @@
 		cloneEl,
 		rootEl,
 		nextEl,
+
+		zoomLevel,
 
 		scrollEl,
 		scrollParentEl,
@@ -282,6 +291,11 @@
 		this.nativeDraggable = options.forceFallback ? false : supportDraggable;
 
 		// Bind events
+		_on(el, 'destroy', function() {
+			if (el[expando]) {
+				el[expando].destroy();
+			}
+		});
 		_on(el, 'mousedown', this._onTapStart);
 		_on(el, 'touchstart', this._onTapStart);
 		_on(el, 'pointerdown', this._onTapStart);
@@ -378,6 +392,8 @@
 				nextEl = dragEl.nextSibling;
 				activeGroup = options.group;
 				oldIndex = startIndex;
+
+				zoomLevel = dragEl.getBoundingClientRect().width / dragEl.offsetWidth;
 
 				this._lastX = (touch || evt).clientX;
 				this._lastY = (touch || evt).clientY;
@@ -545,6 +561,11 @@
 					dy = (touch.clientY - tapEvt.clientY) + fallbackOffset.y,
 					translate3d = evt.touches ? 'translate3d(' + dx + 'px,' + dy + 'px,0)' : 'translate(' + dx + 'px,' + dy + 'px)';
 
+				// Apply zoom to the dragged ghost
+				if (zoomLevel !== 1) {
+					translate3d += ' scale(' + zoomLevel + ')';
+				}
+
 				// only set the status to dragging, when we are actually dragging
 				if (!Sortable.active) {
 					if (fallbackTolerance &&
@@ -566,6 +587,7 @@
 				_css(ghostEl, 'mozTransform', translate3d);
 				_css(ghostEl, 'msTransform', translate3d);
 				_css(ghostEl, 'transform', translate3d);
+				_css(ghostEl, 'transform-origin', '0% 0% 0px');
 
 				evt.preventDefault();
 			}
@@ -586,19 +608,24 @@
 
 				_css(ghostEl, 'top', rect.top - parseInt(css.marginTop, 10));
 				_css(ghostEl, 'left', rect.left - parseInt(css.marginLeft, 10));
-				_css(ghostEl, 'width', rect.width);
-				_css(ghostEl, 'height', rect.height);
+
+				// Artem: Not setting dimensions since we only need initial values which are already cloned
+				//_css(ghostEl, 'width', rect.width);
+				//_css(ghostEl, 'height', rect.height);
 				_css(ghostEl, 'opacity', '0.8');
 				_css(ghostEl, 'position', 'fixed');
 				_css(ghostEl, 'zIndex', '100000');
 				_css(ghostEl, 'pointerEvents', 'none');
 
 				options.fallbackOnBody && document.body.appendChild(ghostEl) || rootEl.appendChild(ghostEl);
-
+				/*
+				// Artem: this is not working too good with `scale()` and is barely needed at all
 				// Fixing dimensions.
 				ghostRect = ghostEl.getBoundingClientRect();
+				console.log(ghostRect);
 				_css(ghostEl, 'width', rect.width * 2 - ghostRect.width);
 				_css(ghostEl, 'height', rect.height * 2 - ghostRect.height);
+				*/
 			}
 		},
 
@@ -1349,6 +1376,10 @@
 			);
 	}
 
+	function _isActive(el) {
+		return !!el[expando];
+	}
+
 
 	// Export utils
 	Sortable.utils = {
@@ -1377,6 +1408,26 @@
 		return new Sortable(el, options);
 	};
 
+	/**
+	 * Destroy sortable instance
+	 * @param {HTMLElement}  el
+	 */
+	Sortable.destroy = function(el) {
+		var evt;
+
+		evt = document.createEvent('Event');
+		evt.initEvent('destroy', false, false);
+
+		el.dispatchEvent(evt);
+	};
+
+	/**
+	 * Check if sortable is initialized on this element
+	 * @param {HTMLElement}  el
+	 */
+	Sortable.isActive = function(el) {
+		return _isActive(el);
+	};
 
 	// Export
 	Sortable.version = '1.5.0-rc1';
