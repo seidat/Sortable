@@ -9,6 +9,9 @@
   * Adds zoomLevel variable to enable sorting when slide map is zoomed out.
   * Modified _onTouchMove and _appendGhost functions to apply `transform: scale()` on the dragged ghost.
   * Added two helper functions to destroy sortable instance and check if it's active.
+	* Edit 6/21/2017
+	*	Some passive event detection copied over from v1.6.0 to resolve chrome android bugs. See https://github.com/RubaXa/Sortable/issues/1022
+	* Can't use the latest version yet because of https://github.com/RubaXa/Sortable/issues/1119
   */
 
 (function sortableModule(factory) {
@@ -79,6 +82,8 @@
 		$ = win.jQuery || win.Zepto,
 		Polymer = win.Polymer,
 
+		captureMode = false,
+
 		supportDraggable = !!('draggable' in document.createElement('div')),
 		supportCssPointerEvents = (function (el) {
 			// false when IE11
@@ -94,7 +99,6 @@
 
 		abs = Math.abs,
 		min = Math.min,
-		slice = [].slice,
 
 		touchDragOverListeners = [],
 
@@ -1137,12 +1141,12 @@
 
 
 	function _on(el, event, fn) {
-		el.addEventListener(event, fn, false);
+		el.addEventListener(event, fn, captureMode);
 	}
 
 
 	function _off(el, event, fn) {
-		el.removeEventListener(event, fn, false);
+		el.removeEventListener(event, fn, captureMode);
 	}
 
 
@@ -1380,6 +1384,17 @@
 		return !!el[expando];
 	}
 
+	// Artem: copying this over from v1.6.0
+	try {
+		window.addEventListener('test', null, Object.defineProperty({}, 'passive', {
+			get: function () {
+				captureMode = {
+					capture: false,
+					passive: false
+				};
+			}
+		}));
+	} catch (err) {}
 
 	// Export utils
 	Sortable.utils = {
