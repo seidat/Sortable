@@ -12,10 +12,6 @@
 	* - Edit 6/21/2017
 	*	Some passive event detection copied over from v1.6.0 to resolve chrome android bugs. See https://github.com/RubaXa/Sortable/issues/1022
 	* Can't use the latest version yet because of https://github.com/RubaXa/Sortable/issues/1119
-	* - Edit 5/2/2018
-	* Calling `stopPropagation()` inside the `_onTouchMove` to prevent iOS browsers from scrolling the page
-	* while dragging.
-	* See: https://github.com/RubaXa/Sortable/issues/1319
   */
 
 (function sortableModule(factory) {
@@ -598,7 +594,6 @@
 				_css(ghostEl, 'transform-origin', '0% 0% 0px');
 
 				evt.preventDefault();
-				evt.stopPropagation();
 			}
 		},
 
